@@ -1,55 +1,113 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Filter from './components/Filter.jsx'
 import PersonForm from './components/PersonForm.jsx'
+import PersonsList from './components/PersonsList.jsx'
+import phoneService from './phoneService.jsx'
+import Notification from './components/Notification.jsx'
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: 9090999999 }
-  ])
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [search, setSearch] = useState('')
+  const [notificationMessage, setNotificationMessage] = useState({ message: "", type: "error" })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (newName == "" || newNumber == "") return;
+  useEffect(() => {
+    phoneService.getAll().then(data => setPersons(data))
+  }, [])
 
-    if (persons.some((value) => value.name == newName)) {
-      alert(newName + " is already added to phonebook")
+  const handleSubmit = (event) => {
+    event.preventDefault()
+
+    const name = newName.trim()
+    const number = newNumber.trim()
+    if (!name || !number) return
+
+    if (persons.some((value) => value.name.toLowerCase() === name.toLowerCase())) {
+      const existingPerson = persons.find(
+        person => person.name.toLowerCase() === name.toLowerCase()
+      )
+
+      if (window.confirm(`${existingPerson.name} is already added to the phonebook, replace the old number with a new one?`)) {
+        phoneService.updatePerson({ ...existingPerson, name, number })
+          .then(updatedPerson => {
+            setPersons(currentPersons =>
+              currentPersons.map(person =>
+                person.id === updatedPerson.id ? updatedPerson : person
+              )
+            )
+              .catch(err => {
+                setNotificationMessage({ message: "Failed to updated person", type: "error" })
+                setTimeout(() => setNotificationMessage({ message: "" }), 5000)
+              })
+            setNewName('')
+            setNewNumber('')
+          })
+          .catch(() => alert('Failed to update person'))
+      }
       return
     }
-    setPersons([...persons, { name: newName, number: newNumber }])
-    setNewName("")
-    setNewNumber('')
+
+    phoneService.addPerson({ name, number })
+      .then(createdPerson => {
+        setNotificationMessage({ message: "Person record added", type: "success" })
+        setTimeout(() => setNotificationMessage({ message: "" }), 5000)
+        setPersons(currentPersons => [...currentPersons, createdPerson])
+        setNewName('')
+        setNewNumber('')
+      })
+      .catch(() => alert('Failed to add person'))
   }
 
-  const handleNameChange = (e) => {
-    setNewName(e.target.value)
-  }
-  const handleNumberChange = (e) => {
-    setNewNumber(e.target.value)
-  }
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value)
+  const handleNameChange = (event) => {
+    setNewName(event.target.value)
   }
 
+  const handleNumberChange = (event) => {
+    setNewNumber(event.target.value)
+  }
 
-  const filteredPersons = persons.filter((person) =>
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value)
+  }
+
+  const filteredPersons = persons.filter(person =>
     person.name.toLowerCase().includes(search.toLowerCase())
   )
 
+  const deletePerson = (id) => {
+    const person = persons.find(currentPerson => currentPerson.id === id)
+
+    if (!person || !window.confirm(`Delete ${person.name}?`)) return
+
+    phoneService.deletePerson(id)
+      .then(() => {
+        setPersons(currentPersons =>
+          currentPersons.filter(currentPerson => currentPerson.id !== id)
+        )
+      })
+      .catch(() => {
+        setNotificationMessage({ message: "Failed to deleted person", type: "error" })
+        setTimeout(() => setNotificationMessage({ message: "" }), 5000)
+      })
+  }
+
   return (
     <div>
+      <Notification message={notificationMessage.message} type={notificationMessage.type} />
       <h2>Phonebook</h2>
       <Filter handleSearchChange={handleSearchChange} search={search} />
       <h2>add a new</h2>
-      <PersonForm handleSubmit={handleSubmit} handleNameChange={handleNameChange} handleNumberChange={handleNumberChange} newName={newName} newNumber={newNumber} />
+      <PersonForm
+        handleSubmit={handleSubmit}
+        handleNameChange={handleNameChange}
+        handleNumberChange={handleNumberChange}
+        newName={newName}
+        newNumber={newNumber}
+      />
       <h2>Numbers</h2>
-      {
-        filteredPersons.map((person) => (<p key={person.name}>{person.name} {person.number}</p>))
-      }
+      <PersonsList filteredPersons={filteredPersons} deletePerson={deletePerson} />
     </div>
-
   )
 }
 
