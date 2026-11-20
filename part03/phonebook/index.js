@@ -1,6 +1,6 @@
 import express from "express"
 import morgan from "morgan"
-import cors from 'cors'
+import Phone from "./models/phone.js"
 import "dotenv/config"
 
 
@@ -40,55 +40,99 @@ let data = [
     }
 ]
 
-app.get("/api/notes", (req, res) => {
-    res.json(data)
+app.get("/api/phones", (req, res, next) => {
+    Phone.find({})
+        .then(result => {
+            res.json(result)
+        })
+        .catch(err => next(err))
 })
-app.get("/api/notes/:id", (req, res) => {
+app.get("/api/phones/:id", (req, res, next) => {
     const id = req.params.id
-    const note = data.filter(note => note.id === id)
-    if (!note.length) {
-        return res.status(404).json({ error: "no note found" })
+    Phone.findById(id)
+        .then(result => {
+            if (result) {
+                res.json(result)
+            }
+            else {
+                res.status(404).end()
+            }
+        })
+        .catch(err => next(err))
+})
+
+app.get("/api/info", async (req, res) => {
+    try {
+        const count = await Phone.countDocuments({})
+        const date = new Date()
+
+        res.send(
+            `Phonebook has info for ${count} people\n${date.toUTCString()}`
+        )
+    } catch (error) {
+        res.status(500).json({ error: "Database error" })
     }
-
-    res.json(note)
 })
 
-app.get("/api/info", (req, res) => {
-    res.write(`Phonebook has info for ${data.length} people`)
-    const d = new Date()
-    res.write("\n")
-    res.write(d.toUTCString())
-    res.send()
-})
-
-app.delete("/api/notes/:id", (req, res) => {
+app.delete("/api/phones/:id", (req, res, next) => {
     const id = req.params.id
-    const note = data.filter(note => note.id === id)
-    if (note.length === 0) {
-        return res.status(204).json({ error: "no note found" })
-    }
-    data = data.filter(note => note.id != id)
-    res.send();
+    Phone.findByIdAndDelete(id)
+        .then(result => {
+            res.status(204).end()
+        })
+        .catch(error => next(error))
 
 })
-app.post("/api/notes", (req, res) => {
+app.post("/api/phones", async (req, res, next) => {
     const body = req.body;
+
     if (body.name == "" || body.number == "") {
         return res.status(400).json({ error: "please provide name and number" })
     }
-    if (data.some(note => note.name === body.name)) {
+    const existingPhone = await Phone.find({ name: body.name });
+
+    if (existingPhone.length > 0)
         return res.status(400).json({ error: "name must be unique" })
-    }
-    const newId = Math.floor(Math.random() * 99999)
-    const newNote = { name: body.name, number: body.number, id: newId }
-    data.push(newNote)
-    res.status(201).json(newNote)
 
+    const phone = new Phone({
+        name: body.name,
+        number: body.number
+    })
+
+    phone.save()
+        .then(result => res.status(201).json(result))
+        .catch(err => next(err))
 })
-
+app.put("/api/phones/:id", (req, res, next) => {
+    const { name, number } = req.body
+    Phone.findById(req.params.id)
+        .then(phone => {
+            if (!phone) {
+                return res.status(404).end()
+            }
+            phone.name = name
+            phone.number = number
+            return phone.save()
+                .then(updatedPhone => res.json(updatedPhone))
+        })
+        .catch(err => next(err))
+})
 app.use((req, res) => {
     res.status(404).send({ error: "unknown endpoint" })
 })
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+    }
+    else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
+
+    next(error)
+}
+app.use(errorHandler)
 app.listen(process.env.PORT || PORT, () => {
     console.log("app running on port ", process.env.PORT)
 })
