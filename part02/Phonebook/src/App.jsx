@@ -36,14 +36,15 @@ const App = () => {
                 person.id === updatedPerson.id ? updatedPerson : person
               )
             )
-              .catch(err => {
-                setNotificationMessage({ message: "Failed to updated person", type: "error" })
-                setTimeout(() => setNotificationMessage({ message: "" }), 5000)
-              })
+            setNotificationMessage({ message: "Phone number updated", type: "success" })
+            setTimeout(() => setNotificationMessage({ message: "", type: "success" }), 5000)
             setNewName('')
             setNewNumber('')
           })
-          .catch(() => alert('Failed to update person'))
+          .catch(() => {
+            setNotificationMessage({ message: "Failed to update person", type: "error" })
+            setTimeout(() => setNotificationMessage({ message: "", type: "error" }), 5000)
+          })
       }
       return
     }
@@ -56,7 +57,14 @@ const App = () => {
         setNewName('')
         setNewNumber('')
       })
-      .catch(() => alert('Failed to add person'))
+      .catch((err) => {
+        const serverMessage = err.response?.data?.error
+        setNotificationMessage({
+          message: serverMessage || "Failed to add person",
+          type: "error"
+        })
+        setTimeout(() => setNotificationMessage({ message: "", type: "error" }), 5000)
+      })
   }
 
   const handleNameChange = (event) => {
