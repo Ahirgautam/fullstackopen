@@ -1,11 +1,11 @@
-import express from "express"
-import morgan from "morgan"
-import Phone from "./models/phone.js"
-import "dotenv/config"
+import express from 'express'
+import morgan from 'morgan'
+import Phone from './models/phone.js'
+import 'dotenv/config'
 
 
 const app = express()
-app.use(express.static("dist"))
+app.use(express.static('dist'))
 app.use(express.json())
 app.use(morgan(function (tokens, req, res) {
     return [
@@ -19,35 +19,35 @@ app.use(morgan(function (tokens, req, res) {
 const PORT = 3001
 let data = [
     {
-        "id": "1",
-        "name": "Arto Hellas",
-        "number": "040-123456"
+        'id': '1',
+        'name': 'Arto Hellas',
+        'number': '040-123456'
     },
     {
-        "id": "2",
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523"
+        'id': '2',
+        'name': 'Ada Lovelace',
+        'number': '39-44-5323523'
     },
     {
-        "id": "3",
-        "name": "Dan Abramov",
-        "number": "12-43-234345"
+        'id': '3',
+        'name': 'Dan Abramov',
+        'number': '12-43-234345'
     },
     {
-        "id": "4",
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122"
+        'id': '4',
+        'name': 'Mary Poppendieck',
+        'number': '39-23-6423122'
     }
 ]
 
-app.get("/api/phones", (req, res, next) => {
+app.get('/api/phones', (req, res, next) => {
     Phone.find({})
         .then(result => {
             res.json(result)
         })
         .catch(err => next(err))
 })
-app.get("/api/phones/:id", (req, res, next) => {
+app.get('/api/phones/:id', (req, res, next) => {
     const id = req.params.id
     Phone.findById(id)
         .then(result => {
@@ -61,7 +61,7 @@ app.get("/api/phones/:id", (req, res, next) => {
         .catch(err => next(err))
 })
 
-app.get("/api/info", async (req, res) => {
+app.get('/api/info', async (req, res) => {
     try {
         const count = await Phone.countDocuments({})
         const date = new Date()
@@ -70,11 +70,11 @@ app.get("/api/info", async (req, res) => {
             `Phonebook has info for ${count} people\n${date.toUTCString()}`
         )
     } catch (error) {
-        res.status(500).json({ error: "Database error" })
+        res.status(500).json({ error: 'Database error' })
     }
 })
 
-app.delete("/api/phones/:id", (req, res, next) => {
+app.delete('/api/phones/:id', (req, res, next) => {
     const id = req.params.id
     Phone.findByIdAndDelete(id)
         .then(result => {
@@ -83,16 +83,16 @@ app.delete("/api/phones/:id", (req, res, next) => {
         .catch(error => next(error))
 
 })
-app.post("/api/phones", async (req, res, next) => {
-    const body = req.body;
+app.post('/api/phones', async (req, res, next) => {
+    const body = req.body
 
-    if (body.name == "" || body.number == "") {
-        return res.status(400).json({ error: "please provide name and number" })
+    if (body.name == '' || body.number == '') {
+        return res.status(400).json({ error: 'please provide name and number' })
     }
-    const existingPhone = await Phone.find({ name: body.name });
+    const existingPhone = await Phone.find({ name: body.name })
 
     if (existingPhone.length > 0)
-        return res.status(400).json({ error: "name must be unique" })
+        return res.status(400).json({ error: 'name must be unique' })
 
     const phone = new Phone({
         name: body.name,
@@ -103,7 +103,7 @@ app.post("/api/phones", async (req, res, next) => {
         .then(result => res.status(201).json(result))
         .catch(err => next(err))
 })
-app.put("/api/phones/:id", (req, res, next) => {
+app.put('/api/phones/:id', (req, res, next) => {
     const { name, number } = req.body
     Phone.findById(req.params.id)
         .then(phone => {
@@ -118,7 +118,7 @@ app.put("/api/phones/:id", (req, res, next) => {
         .catch(err => next(err))
 })
 app.use((req, res) => {
-    res.status(404).send({ error: "unknown endpoint" })
+    res.status(404).send({ error: 'unknown endpoint' })
 })
 const errorHandler = (error, request, response, next) => {
     console.error(error.message)
@@ -134,5 +134,5 @@ const errorHandler = (error, request, response, next) => {
 }
 app.use(errorHandler)
 app.listen(process.env.PORT || PORT, () => {
-    console.log("app running on port ", process.env.PORT)
+    console.log('app running on port ', process.env.PORT)
 })
