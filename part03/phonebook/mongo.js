@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-
+import "dotenv/config"
 if (process.argv.length < 3) {
     console.log("Please provide password!")
     process.exit(1)
 }
 
 const password = process.argv[2]
-const url = `mongodb+srv://valagautam220_db_user:${password}@cluster0.9hweiwl.mongodb.net/`
+const url = process.env.MONGODB_URI
 
 mongoose.set("strictQuery", false)
 mongoose.connect(url, { family: 4 })
